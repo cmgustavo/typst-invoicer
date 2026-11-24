@@ -19,7 +19,8 @@ lives in a separate private repo that calls the reusable workflow.
 | Billing month | the month **after** the issue date (issued Nov 27 2026 → bills December 2026), or `--month` |
 | Issue date | today in `config.timeZone`, or `--date`. The workflow runs every Friday and only acts on the last one |
 | Due date | issue date + `paymentTermsDays` |
-| Numbering | sequential. `data/invoices.json` is the source of truth. Re-running a billed month reuses its number and overwrites the PDF |
+| Numbering | plain sequential integers (`64`, `65`, …). `data/invoices.json` is the source of truth. Re-running a billed month reuses its number and overwrites the PDF |
+| Service period | first to last day of the billing month, e.g. "December 1–31, 2026" |
 | Money | integer cents everywhere, formatted with `Intl.NumberFormat` only at output |
 | Dates | plain calendar dates, no time zone arithmetic |
 
@@ -33,12 +34,13 @@ npm run invoice -- --data-dir examples/data --date 2026-11-27 --dry-run
 ```
 
 ```text
-Invoice      INV-0001
+Invoice      1
 Billing      December 2026 (5 weeks × $1,345.29 · Dec 2, Dec 9, Dec 16, Dec 23, Dec 30)
+Period       December 1–31, 2026
 Issue date   November 27, 2026
 Due date     December 27, 2026
 Total        $6,726.45
-Output       invoices/2026/INV-0001_2026-12.pdf
+Output       invoices/2026/2026-12_invoice-1.pdf
 ```
 
 A data directory contains:
@@ -52,8 +54,8 @@ data/
 
 ### `config.json`
 
-Validated with zod. An invalid file fails with one line per problem, e.g.
-`- billTo.email: Invalid email address`.
+Validated with zod. Unknown keys are rejected, and an invalid file fails with one
+line per problem, e.g. `- billTo.emails.1: Invalid email address`.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -64,13 +66,16 @@ Validated with zod. An invalid file fails with one line per problem, e.g.
 | `billableWeekday` | 0–6 | 0 = Sunday, 3 = Wednesday |
 | `paymentTermsDays` | integer | `30` → "Net 30" |
 | `firstInvoiceNumber` | integer | used only while the ledger is empty |
-| `numberPrefix` / `numberPadding` | string / integer | default `INV-` / `4` → `INV-0064` |
 | `description` | string | line item text; the month is appended |
 | `showBreakdown` | boolean | show "5 weeks × $… · Dec 2, …" under the line item |
-| `from`, `billTo` | `{ name, address[], email }` | |
-| `notes` | string[] | printed at the bottom (e.g. payment details) |
+| `from` | `{ name, address[], email }` | |
+| `billTo` | `{ name, address[], emails[] }` | every email is printed |
+| `notes` | string[] | "Terms & instructions"; supports `{number}`, `{period}`, `{paymentTermsDays}` |
 | `email.to` | email or email[] | recipient(s) for `--send` |
-| `email.subject` | string | supports `{number}` and `{month}` |
+| `email.subject` | string | default `Invoice {number} · {month}`; supports `{number}`, `{month}`, `{period}` |
+
+An unknown placeholder (e.g. a typo like `{Number}`) is an error, so nothing
+unreplaced ever reaches the PDF or the email.
 
 ### Email
 
@@ -93,7 +98,7 @@ npx tsx src/cli.ts [options]        (bin: typst-invoicer)
   -h, --help              Show help
 ```
 
-PDFs are written to `<out-dir>/<year>/<number>_<YYYY-MM>.pdf`.
+PDFs are written to `<out-dir>/<YYYY>/<YYYY-MM>_invoice-<number>.pdf`, e.g. `invoices/2026/2026-12_invoice-64.pdf`.
 
 ## Use it from a private data repo
 
@@ -148,7 +153,7 @@ PDFs are written to `<out-dir>/<year>/<number>_<YYYY-MM>.pdf`.
 The workflow checks out your repo, checks out this tool into `.tool/` (add `.tool/`
 to your `.gitignore`), installs Node 22 and the pinned Typst, runs the CLI against
 `data/` and `invoices/`, uploads the PDF as a run artifact and commits
-`data/invoices.json` plus the PDF with `chore(invoices): add <number>`.
+`data/invoices.json` plus the PDF with `chore(invoices): add invoice <number>`.
 
 ### Reusable workflow reference
 
