@@ -1,0 +1,34 @@
+{
+  "locale": "en-US",
+  "currency": "USD",
+  "timeZone": "America/Argentina/Buenos_Aires",
+
+  "ratePerWeekCents": 134529,
+  "billableWeekday": 3,
+  "paymentTermsDays": 30,
+
+  "firstInvoiceNumber": 1,
+  "numberPrefix": "INV-",
+  "numberPadding": 4,
+
+  "description": "Monthly contracting services",
+  "showBreakdown": true,
+
+  "from": {
+    "name": "Jane Doe",
+    "address": ["123 Example Street", "Springfield, ST 00000", "Exampleland"],
+    "email": "jane@example.com"
+  },
+  "billTo": {
+    "name": "ACME Corp",
+    "address": ["1 Acme Plaza", "Metropolis, ST 00000", "United States"],
+    "email": "billing@acme.example"
+  },
+
+  "notes": ["Payment details: jane@example.com"],
+
+  "email": {
+    "to": "jane@example.com",
+    "subject": "Invoice {number} · {month}"
+  }
+}
