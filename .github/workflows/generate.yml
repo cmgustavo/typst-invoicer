@@ -3,7 +3,7 @@
 #
 # Security note: actions below are pinned to major tags for readability. For a
 # stronger supply-chain guarantee, pin each `uses:` to a full commit SHA
-# (e.g. actions/checkout@<40-char-sha> # v4) and let Dependabot bump them.
+# (e.g. actions/checkout@<40-char-sha> # v7) and let Dependabot bump them.
 name: Generate invoice
 
 on:
@@ -68,10 +68,10 @@ jobs:
       file: ${{ steps.invoice.outputs.file }}
     steps:
       - name: Check out data (caller repository)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check out typst-invoicer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # job.workflow_* describe this reusable workflow (github.* describes the caller).
           repository: ${{ job.workflow_repository || 'cmgustavo/typst-invoicer' }}
@@ -83,7 +83,7 @@ jobs:
         working-directory: .tool
         run: git log -1 --format='typst-invoicer %H (%cs)'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload PDF
         if: steps.invoice.outputs.generated == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.invoice.outputs.number }}
           path: ${{ steps.invoice.outputs.file }}

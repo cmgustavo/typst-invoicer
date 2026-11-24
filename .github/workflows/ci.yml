@@ -16,11 +16,11 @@ jobs:
     env:
       TYPST_VERSION: "0.13.1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -42,7 +42,7 @@ jobs:
           npm run smoke
           test -s build/smoke/invoices/2026/INV-0001_2026-12.pdf
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: example-invoice
           path: build/smoke/invoices/
