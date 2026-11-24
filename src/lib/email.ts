@@ -8,10 +8,6 @@ export interface InvoiceEmail {
   pdfPath: string;
 }
 
-export function renderSubject(template: string, vars: { number: string; month: string }): string {
-  return template.replaceAll("{number}", vars.number).replaceAll("{month}", vars.month);
-}
-
 /** Sends the PDF through Gmail SMTP using GMAIL_USER / GMAIL_APP_PASSWORD. */
 export async function sendInvoiceEmail({ to, subject, text, pdfPath }: InvoiceEmail): Promise<void> {
   const user = process.env.GMAIL_USER;

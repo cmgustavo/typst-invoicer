@@ -45,5 +45,6 @@ export const upsertEntry = (ledger: Ledger, entry: LedgerEntry): LedgerEntry[] =
     (a, b) => a.number - b.number,
   );
 
-export const formatNumber = (n: number, prefix: string, padding: number): string =>
-  `${prefix}${String(n).padStart(padding, "0")}`;
+/** PDF path relative to the output dir: `YYYY/YYYY-MM_invoice-<number>.pdf`. */
+export const invoiceFileName = (billingMonth: string, number: number): string =>
+  `${billingMonth.slice(0, 4)}/${billingMonth}_invoice-${number}.pdf`;

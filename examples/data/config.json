@@ -8,8 +8,6 @@
   "paymentTermsDays": 30,
 
   "firstInvoiceNumber": 1,
-  "numberPrefix": "INV-",
-  "numberPadding": 4,
 
   "description": "Monthly contracting services",
   "showBreakdown": true,
@@ -22,10 +20,16 @@
   "billTo": {
     "name": "ACME Corp",
     "address": ["1 Acme Plaza", "Metropolis, ST 00000", "United States"],
-    "email": "billing@acme.example"
+    "emails": ["accounts-payable@acme.example", "people@acme.example"]
   },
 
-  "notes": ["Payment details: jane@example.com"],
+  "notes": [
+    "Services rendered under the Consulting Agreement between ACME Corp and Jane Doe dated January 15, 2024, and its Statement of Work (Exhibit A).",
+    "Service period: {period}.",
+    "Payment terms: Net {paymentTermsDays} from receipt of invoice, per Section 2(a).",
+    "Payment method: bank transfer to the account on file.",
+    "Please reference invoice {number} with your payment."
+  ],
 
   "email": {
     "to": "jane@example.com",

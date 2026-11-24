@@ -44,7 +44,7 @@ on:
         description: "'true' when a PDF was generated"
         value: ${{ jobs.generate.outputs.generated }}
       number:
-        description: "Invoice number, e.g. INV-0064"
+        description: "Invoice number, e.g. 64"
         value: ${{ jobs.generate.outputs.number }}
       file:
         description: "PDF path relative to the caller repository root"
@@ -126,7 +126,7 @@ jobs:
         if: steps.invoice.outputs.generated == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.invoice.outputs.number }}
+          name: invoice-${{ steps.invoice.outputs.number }}
           path: ${{ steps.invoice.outputs.file }}
           if-no-files-found: error
 
@@ -142,6 +142,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit."
           else
-            git commit -m "chore(invoices): add ${NUMBER}"
+            git commit -m "chore(invoices): add invoice ${NUMBER}"
             git push
           fi

@@ -15,7 +15,7 @@
     #set text(8pt, fill: muted)
     #d.from.name · #d.from.email
     #h(1fr)
-    #d.number
+    Invoice no. #d.number
   ],
 )
 #set text(font: ("Inter", "Libertinus Serif"), size: 9.5pt, fill: luma(35))
@@ -35,7 +35,7 @@
   ],
   [
     #text(26pt, weight: "bold", fill: accent, tracking: 0.04em)[INVOICE] \
-    #text(11pt, weight: "medium", d.number)
+    #text(11pt, weight: "medium")[No. #d.number]
   ],
 )
 
@@ -52,7 +52,7 @@
     #v(2pt)
     #text(weight: "semibold", d.billTo.name) \
     #lines(d.billTo.address) \
-    #text(fill: muted, d.billTo.email)
+    #text(fill: muted, lines(d.billTo.emails))
   ],
   grid(
     columns: (auto, auto),
@@ -62,6 +62,7 @@
     label[Invoice no.], d.number,
     label[Issue date], d.issueDate,
     label[Due date], d.dueDate,
+    label[Service period], d.servicePeriod,
     label[Terms], d.terms,
   ),
 )
@@ -125,6 +126,7 @@
   #v(2pt)
   #line(length: 100%, stroke: 0.6pt + rule)
   #v(2pt)
-  #for n in d.notes [#n \ ]
+  #d.notes.join(linebreak())
+  #v(0.75em)
   #text(fill: muted)[Thank you for your business.]
 ]

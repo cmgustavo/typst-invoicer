@@ -13,11 +13,11 @@ import {
   weekdayOf,
   type PlainDate,
 } from "./lib/dates";
-import { renderSubject, sendInvoiceEmail } from "./lib/email";
+import { sendInvoiceEmail } from "./lib/email";
 import { buildInvoice, defaultBillingMonth } from "./lib/invoice";
 import {
   assignNumber,
-  formatNumber,
+  invoiceFileName,
   loadLedger,
   saveLedger,
   upsertEntry,
@@ -88,21 +88,17 @@ async function main(): Promise<void> {
 
   const billingMonth = args.month ? parseYearMonth(args.month) : defaultBillingMonth(issueDate);
   const number = assignNumber(ledger, toYearMonthISO(billingMonth), config.firstInvoiceNumber);
-  const numberLabel = formatNumber(number, config.numberPrefix, config.numberPadding);
-  const invoice = buildInvoice(config, issueDate, billingMonth, numberLabel);
+  const invoice = buildInvoice(config, issueDate, billingMonth, number);
   const existing = ledger.find((e) => e.billingMonth === invoice.billingMonthISO);
 
-  const pdfPath = path.join(
-    outDir,
-    String(billingMonth.year),
-    `${numberLabel}_${invoice.billingMonthISO}.pdf`,
-  );
+  const pdfPath = path.join(outDir, invoiceFileName(invoice.billingMonthISO, number));
   const relativePdf = toPosix(path.relative(process.cwd(), pdfPath));
 
   console.log(
     [
-      `Invoice      ${numberLabel}${existing ? " (re-issue)" : ""}`,
+      `Invoice      ${number}${existing ? " (re-issue)" : ""}`,
       `Billing      ${invoice.monthLabel} (${invoice.breakdown})`,
+      `Period       ${invoice.servicePeriod}`,
       `Issue date   ${invoice.template.issueDate}`,
       `Due date     ${invoice.template.dueDate}`,
       `Total        ${invoice.template.total}`,
@@ -128,11 +124,8 @@ async function main(): Promise<void> {
   if (args.send) {
     await sendInvoiceEmail({
       to: config.email.to,
-      subject: renderSubject(config.email.subject, {
-        number: numberLabel,
-        month: invoice.monthLabel,
-      }),
-      text: `${numberLabel} for ${invoice.monthLabel}: ${invoice.template.total}, due ${invoice.template.dueDate}.`,
+      subject: invoice.emailSubject,
+      text: `Invoice ${number} for ${invoice.monthLabel}: ${invoice.template.total}, due ${invoice.template.dueDate}.`,
       pdfPath,
     });
     entry.sentAt = new Date().toISOString();
@@ -142,7 +135,7 @@ async function main(): Promise<void> {
   saveLedger(ledgerPath, upsertEntry(ledger, entry));
 
   setOutput("generated", "true");
-  setOutput("number", numberLabel);
+  setOutput("number", String(number));
   setOutput("file", relativePdf);
 }
 

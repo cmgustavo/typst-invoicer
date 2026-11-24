@@ -1,10 +1,16 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 
-const party = z.object({
+const from = z.strictObject({
   name: z.string().min(1),
   address: z.array(z.string()).min(1),
   email: z.email(),
+});
+
+const billTo = z.strictObject({
+  name: z.string().min(1),
+  address: z.array(z.string()).min(1),
+  emails: z.array(z.email()).min(1),
 });
 
 const isTimeZone = (tz: string): boolean => {
@@ -25,7 +31,8 @@ const isCurrency = (code: string): boolean => {
   }
 };
 
-export const configSchema = z.object({
+// strictObject: unknown keys (typos, removed fields) are reported instead of ignored.
+export const configSchema = z.strictObject({
   locale: z.string().min(2).default("en-US"),
   currency: z.string().length(3).refine(isCurrency, "Unknown ISO 4217 currency code"),
   timeZone: z.string().refine(isTimeZone, "Unknown IANA time zone"),
@@ -35,18 +42,18 @@ export const configSchema = z.object({
   paymentTermsDays: z.number().int().min(0),
 
   firstInvoiceNumber: z.number().int().positive(),
-  numberPrefix: z.string().default("INV-"),
-  numberPadding: z.number().int().min(0).max(12).default(4),
 
   description: z.string().min(1),
   showBreakdown: z.boolean().default(false),
 
-  from: party,
-  billTo: party,
+  from,
+  billTo,
+  /** Supports {number}, {period} and {paymentTermsDays}. */
   notes: z.array(z.string()).default([]),
 
-  email: z.object({
+  email: z.strictObject({
     to: z.union([z.email(), z.array(z.email()).min(1)]),
+    /** Supports {number}, {month} and {period}. */
     subject: z.string().min(1).default("Invoice {number} · {month}"),
   }),
 });
@@ -61,7 +68,8 @@ export function parseConfig(raw: unknown, source = "config.json"): Config {
   if (result.success) return result.data;
   const problems = result.error.issues.map((issue) => {
     const where = issue.path.length > 0 ? issue.path.join(".") : "(root)";
-    return `  - ${where}: ${issue.message}`;
+    const keys = issue.code === "unrecognized_keys" ? ` (${issue.keys.join(", ")})` : "";
+    return `  - ${where}: ${issue.message}${keys}`;
   });
   throw new ConfigError(`Invalid ${source}:\n${problems.join("\n")}`);
 }

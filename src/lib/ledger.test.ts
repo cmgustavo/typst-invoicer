@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { assignNumber, formatNumber, upsertEntry, type LedgerEntry } from "./ledger";
+import { assignNumber, invoiceFileName, upsertEntry, type LedgerEntry } from "./ledger";
 
 const entry = (number: number, billingMonth: string): LedgerEntry => ({
   number,
@@ -9,7 +9,7 @@ const entry = (number: number, billingMonth: string): LedgerEntry => ({
   dueDate: "2026-12-27",
   billableDays: 5,
   amountCents: 672645,
-  file: `invoices/2026/INV-${number}_${billingMonth}.pdf`,
+  file: `invoices/${invoiceFileName(billingMonth, number)}`,
 });
 
 test("first invoice uses firstInvoiceNumber", () => {
@@ -38,8 +38,7 @@ test("upsert replaces the month instead of duplicating it", () => {
   assert.equal(ledger.length, 2, "input is not mutated");
 });
 
-test("formats invoice numbers with prefix and padding", () => {
-  assert.equal(formatNumber(64, "INV-", 4), "INV-0064");
-  assert.equal(formatNumber(12345, "INV-", 4), "INV-12345");
-  assert.equal(formatNumber(7, "", 0), "7");
+test("PDF filename uses the plain number", () => {
+  assert.equal(invoiceFileName("2026-12", 64), "2026/2026-12_invoice-64.pdf");
+  assert.equal(invoiceFileName("2027-01", 65), "2027/2027-01_invoice-65.pdf");
 });
