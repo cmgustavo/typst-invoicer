@@ -94,3 +94,24 @@ export const formatMonth = (ym: YearMonth, locale: string): string =>
   new Intl.DateTimeFormat(locale, { timeZone: "UTC", month: "long", year: "numeric" }).format(
     toUTC({ ...ym, day: 1 }),
   );
+
+export const firstDayOf = (ym: YearMonth): PlainDate => ({ ...ym, day: 1 });
+export const lastDayOf = (ym: YearMonth): PlainDate => ({ ...ym, day: daysInMonth(ym) });
+
+const monthName = (d: PlainDate, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { timeZone: "UTC", month: "long" }).format(toUTC(d));
+
+/**
+ * Formats an inclusive date range: "December 1–31, 2026" within a month,
+ * "December 15 – January 14, 2027" across months, and both years when they differ.
+ */
+export function formatDateRange(start: PlainDate, end: PlainDate, locale: string): string {
+  const [m1, m2] = [monthName(start, locale), monthName(end, locale)];
+  if (start.year !== end.year) {
+    return `${m1} ${start.day}, ${start.year} – ${m2} ${end.day}, ${end.year}`;
+  }
+  if (start.month !== end.month) {
+    return `${m1} ${start.day} – ${m2} ${end.day}, ${end.year}`;
+  }
+  return `${m1} ${start.day}–${end.day}, ${end.year}`;
+}

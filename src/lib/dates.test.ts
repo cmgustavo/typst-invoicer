@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   addDays,
   datesOfWeekday,
+  formatDateRange,
   isLastOfItsWeekdayInMonth,
   nextMonth,
   parseDate,
@@ -58,4 +59,17 @@ test("resolves today in the configured time zone", () => {
   const now = new Date("2026-11-28T02:00:00Z");
   assert.deepEqual(todayIn("America/Argentina/Buenos_Aires", now), { year: 2026, month: 11, day: 27 });
   assert.deepEqual(todayIn("UTC", now), { year: 2026, month: 11, day: 28 });
+});
+
+test("formats date ranges, spelling out both months when they differ", () => {
+  const d = parseDate;
+  assert.equal(formatDateRange(d("2026-12-01"), d("2026-12-31"), "en-US"), "December 1–31, 2026");
+  assert.equal(
+    formatDateRange(d("2026-11-15"), d("2026-12-14"), "en-US"),
+    "November 15 – December 14, 2026",
+  );
+  assert.equal(
+    formatDateRange(d("2026-12-15"), d("2027-01-14"), "en-US"),
+    "December 15, 2026 – January 14, 2027",
+  );
 });
