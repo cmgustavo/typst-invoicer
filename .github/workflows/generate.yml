@@ -1,0 +1,147 @@
+# Reusable workflow: generate (and optionally email) the monthly invoice for the
+# CALLER repository, which holds data/config.json, data/invoices.json and invoices/.
+#
+# Security note: actions below are pinned to major tags for readability. For a
+# stronger supply-chain guarantee, pin each `uses:` to a full commit SHA
+# (e.g. actions/checkout@<40-char-sha> # v4) and let Dependabot bump them.
+name: Generate invoice
+
+on:
+  workflow_call:
+    inputs:
+      month:
+        description: "Billing month (YYYY-MM). Empty = the month after the issue date"
+        type: string
+        required: false
+        default: ""
+      send:
+        description: "Email the PDF via Gmail"
+        type: boolean
+        required: false
+        default: false
+      only-on-last-friday:
+        description: "Do nothing unless today (in config.timeZone) is the last Friday of the month"
+        type: boolean
+        required: false
+        default: false
+      typst-version:
+        description: "Typst release to install"
+        type: string
+        required: false
+        default: "0.13.1"
+      tool-ref:
+        description: "typst-invoicer ref to run. Empty = the same commit as this workflow"
+        type: string
+        required: false
+        default: ""
+    secrets:
+      GMAIL_USER:
+        required: false
+      GMAIL_APP_PASSWORD:
+        required: false
+    outputs:
+      generated:
+        description: "'true' when a PDF was generated"
+        value: ${{ jobs.generate.outputs.generated }}
+      number:
+        description: "Invoice number, e.g. INV-0064"
+        value: ${{ jobs.generate.outputs.number }}
+      file:
+        description: "PDF path relative to the caller repository root"
+        value: ${{ jobs.generate.outputs.file }}
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # commit the ledger and PDF back to the caller
+    concurrency:
+      group: typst-invoicer-${{ github.repository }}
+      cancel-in-progress: false
+    outputs:
+      generated: ${{ steps.invoice.outputs.generated }}
+      number: ${{ steps.invoice.outputs.number }}
+      file: ${{ steps.invoice.outputs.file }}
+    steps:
+      - name: Check out data (caller repository)
+        uses: actions/checkout@v4
+
+      - name: Check out typst-invoicer
+        uses: actions/checkout@v4
+        with:
+          # job.workflow_* describe this reusable workflow (github.* describes the caller).
+          repository: ${{ job.workflow_repository || 'cmgustavo/typst-invoicer' }}
+          ref: ${{ inputs.tool-ref || job.workflow_sha || 'v1.0.0' }}
+          path: .tool
+          persist-credentials: false
+
+      - name: Show tool version
+        working-directory: .tool
+        run: git log -1 --format='typst-invoicer %H (%cs)'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: .tool/package-lock.json
+
+      - name: Install dependencies
+        working-directory: .tool
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Typst
+        env:
+          TYPST_VERSION: ${{ inputs.typst-version }}
+        run: |
+          if ! [[ "$TYPST_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid typst-version: $TYPST_VERSION"; exit 1
+          fi
+          dir="$RUNNER_TEMP/typst"
+          mkdir -p "$dir"
+          curl -sSfL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
+            | tar -xJ -C "$dir" --strip-components=1
+          echo "$dir" >> "$GITHUB_PATH"
+          "$dir/typst" --version
+
+      - name: Generate invoice
+        id: invoice
+        env:
+          MONTH: ${{ inputs.month }}
+          SEND: ${{ inputs.send }}
+          ONLY_ON_LAST_FRIDAY: ${{ inputs.only-on-last-friday }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          args=(--data-dir data --out-dir invoices)
+          if [ "$ONLY_ON_LAST_FRIDAY" = "true" ]; then args+=(--only-on-last-friday); fi
+          if [ -n "$MONTH" ]; then args+=(--month "$MONTH"); fi
+          if [ "$SEND" = "true" ]; then args+=(--send); fi
+          .tool/node_modules/.bin/tsx .tool/src/cli.ts "${args[@]}"
+
+      - name: Upload PDF
+        if: steps.invoice.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.invoice.outputs.number }}
+          path: ${{ steps.invoice.outputs.file }}
+          if-no-files-found: error
+
+      - name: Commit ledger and PDF
+        if: steps.invoice.outputs.generated == 'true'
+        env:
+          NUMBER: ${{ steps.invoice.outputs.number }}
+          FILE: ${{ steps.invoice.outputs.file }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/invoices.json "$FILE"
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "chore(invoices): add ${NUMBER}"
+            git push
+          fi
