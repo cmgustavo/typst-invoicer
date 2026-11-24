@@ -1,0 +1,34 @@
+{
+  "name": "typst-invoicer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Monthly contractor invoices: TypeScript computes the amount, Typst renders the PDF, Gmail delivers it.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cmgustavo/typst-invoicer.git"
+  },
+  "bin": {
+    "typst-invoicer": "src/cli.ts"
+  },
+  "scripts": {
+    "invoice": "tsx src/cli.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "smoke": "rm -rf build/smoke && mkdir -p build/smoke && cp -R examples/data build/smoke/data && tsx src/cli.ts --data-dir build/smoke/data --out-dir build/smoke/invoices --date 2026-11-27"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "nodemailer": "10.4.0",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/nodemailer": "8.0.2",
+    "typescript": "6.0.3"
+  }
+}
